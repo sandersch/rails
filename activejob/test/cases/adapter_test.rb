@@ -27,4 +27,14 @@ class AdapterTest < ActiveSupport::TestCase
 
     assert_not_nil child_job_three.queue_adapter
   end
+
+  test 'should allow the queue adapter to be callable' do
+    proc_job_class = Class.new(ActiveJob::Base)
+    proc_job_class.queue_adapter = ->{ :test }
+    assert_equal proc_job_class.queue_adapter, ActiveJob::QueueAdapters::TestAdapter
+
+    method_job_class = Class.new(ActiveJob::Base)
+    method_job_class.queue_adapter = proc_job_class.method(:queue_adapter)
+    assert_equal method_job_class.queue_adapter, ActiveJob::QueueAdapters::TestAdapter
+  end
 end

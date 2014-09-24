@@ -13,20 +13,26 @@ module ActiveJob
 
     module ClassMethods
       def queue_adapter
-        _queue_adapter
+        if _queue_adapter.respond_to?(:call)
+          interpret_adapter(_queue_adapter.call)
+        else
+          _queue_adapter
+        end
       end
 
-      def queue_adapter=(name_or_adapter)
-        self._queue_adapter = interpret_adapter(name_or_adapter)
+      def queue_adapter=(name_or_adapter_or_proc)
+        self._queue_adapter = interpret_adapter(name_or_adapter_or_proc)
       end
 
       private
-        def interpret_adapter(name_or_adapter)
-          case name_or_adapter
+        def interpret_adapter(name_or_adapter_or_proc)
+          case name_or_adapter_or_proc
           when Symbol, String
-            load_adapter(name_or_adapter)
+            load_adapter(name_or_adapter_or_proc)
           when Class
-            name_or_adapter
+            name_or_adapter_or_proc
+          else
+            name_or_adapter_or_proc if name_or_adapter_or_proc.respond_to?(:call)
           end
         end
 
