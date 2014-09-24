@@ -142,17 +142,9 @@ module ActiveJob
       #       MyJob.perform_later(1,2,3)
       #     end
       #   end
-      def assert_enqueued_with(args = {}, &_block)
-        original_enqueued_jobs = enqueued_jobs.dup
-        clear_enqueued_jobs
-        args.assert_valid_keys(:job, :args, :at, :queue)
-        yield
-        matching_job = enqueued_jobs.any? do |job|
-          args.all? { |key, value| value == job[key] }
-        end
+      def assert_enqueued_with(args = {}, &block)
+        matching_job = matching_verbed_job(:enqueued_jobs, args, &block)
         assert matching_job, "No enqueued job found with #{args}"
-      ensure
-        queue_adapter.enqueued_jobs = original_enqueued_jobs + enqueued_jobs
       end
 
       # Asserts that the job passed in the block has been performed with the given arguments.
@@ -162,28 +154,29 @@ module ActiveJob
       #       MyJob.perform_later(1,2,3)
       #     end
       #   end
-      def assert_performed_with(args = {}, &_block)
-        original_performed_jobs = performed_jobs.dup
-        clear_performed_jobs
-        args.assert_valid_keys(:job, :args, :at, :queue)
-        yield
-        matching_job = performed_jobs.any? do |job|
-          args.all? { |key, value| value == job[key] }
-        end
+      def assert_performed_with(args = {}, &block)
+        matching_job = matching_verbed_job(:performed_jobs, args, &block)
         assert matching_job, "No performed job found with #{args}"
-      ensure
-        queue_adapter.performed_jobs = original_performed_jobs + performed_jobs
       end
 
       def queue_adapter
         ActiveJob::Base.queue_adapter
       end
 
-      delegate :enqueued_jobs, :enqueued_jobs=,
-               :performed_jobs, :performed_jobs=,
-               to: :queue_adapter
+      delegate :enqueued_jobs, :performed_jobs, to: :queue_adapter
 
       private
+        def matching_verbed_job(verb, args, &_block)
+          args.assert_valid_keys(:job, :args, :at, :queue)
+
+          already_verbed_jobs = send(verb).length
+          yield
+          verbed_jobs = send(verb)
+          verbed_jobs.drop(already_verbed_jobs).any? do |job|
+            args.all? { |key, value| value == job[key] }
+          end
+        end
+
         def clear_enqueued_jobs
           enqueued_jobs.clear
         end

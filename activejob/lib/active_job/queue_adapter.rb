@@ -11,8 +11,6 @@ module ActiveJob
       def queue_adapter=(name_or_adapter)
         @@queue_adapter = \
           case name_or_adapter
-          when :test
-            ActiveJob::QueueAdapters::TestAdapter.new
           when Symbol, String
             load_adapter(name_or_adapter)
           when Class
