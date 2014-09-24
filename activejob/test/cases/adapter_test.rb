@@ -2,8 +2,9 @@ require 'helper'
 
 class AdapterTest < ActiveSupport::TestCase
   test "should load #{ENV['AJADAPTER']} adapter" do
-    ActiveJob::Base.queue_adapter = ENV['AJADAPTER'].to_sym
-    assert_equal ActiveJob::Base.queue_adapter, "active_job/queue_adapters/#{ENV['AJADAPTER']}_adapter".classify.constantize
+    job_class = Class.new(ActiveJob::Base)
+    job_class.queue_adapter = ENV['AJADAPTER'].to_sym
+    assert_equal job_class.queue_adapter, "active_job/queue_adapters/#{ENV['AJADAPTER']}_adapter".classify.constantize
   end
 
   test 'should allow overriding the queue_adapter at the child class level without affecting the parent or its sibling' do
