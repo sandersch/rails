@@ -1,3 +1,5 @@
+require 'active_support/core_ext/class/subclasses'
+
 module ActiveJob
   # Provides helper methods for testing Active Job
   module TestHelper
@@ -5,8 +7,14 @@ module ActiveJob
 
     included do
       def before_setup
-        @old_queue_adapter  = queue_adapter
-        ActiveJob::Base.queue_adapter = :test
+        @old_queue_adapters = (ActiveJob::Base.subclasses << ActiveJob::Base).select do |klass|
+          klass.methods(false).include?(:_queue_adapter)
+        end.map do |klass|
+          [klass, klass._queue_adapter].tap do
+            klass.queue_adapter = :test
+          end
+        end
+
         clear_enqueued_jobs
         clear_performed_jobs
         super
@@ -14,7 +22,9 @@ module ActiveJob
 
       def after_teardown
         super
-        ActiveJob::Base.queue_adapter = @old_queue_adapter
+        @old_queue_adapters.each do |(klass, adapter)|
+          klass._queue_adapter = adapter
+        end
       end
 
       # Asserts that the number of enqueued jobs matches the given number.
